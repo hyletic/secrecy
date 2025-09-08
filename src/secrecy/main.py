@@ -78,7 +78,7 @@ def cli():
 
 
 @cli.command()
-@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path), required=False)
 @click.option("--password", "-p", help="Encryption password")
 @click.option(
     "--output",
@@ -86,25 +86,35 @@ def cli():
     type=click.Path(path_type=Path),
     help="Output file path (defaults to DATA_DIR/encrypted/filename.crypt)",
 )
+@click.option(
+    "--print-only",
+    "-P",
+    is_flag=True,
+    default=False,
+    help="Output encrypted data to stdout without prompting to save",
+)
 def encrypt(
-    file: str | PathLike,
+    file: str | PathLike | None = None,
     password: str | None = None,
-    output: str | PathLike | None = None
+    output: str | PathLike | None = None,
+    print_only: bool = False
 ) -> None: 
     """Encrypt a file using a password.
 
     Parameters
     ----------
-    file : str | PathLike
+    file : str | PathLike, optional
         A string or path-like object representing the location of the
-        target file.
+        target file. If not provided, reads from stdin.
     password : str, optional
         The string of UTF-8-encoded characters used to encrypt the file.
     output : str | PathLike, optional
         A string or path-like object representing the location to which
-        this function writes the target file's encrypted contents. Defaults
-        to the value of this module's ``ENCRYPTION_DIR`` constant, appended
-        with ``[your original file name].crypt``.
+        this function writes the target file's encrypted contents.
+    print_only : bool
+        A boolean value that determines whether this function writes the
+        encrypted contents to disk or outputs them to stdout. Defaults to
+        ``False``.
 
     Returns
     -------
@@ -121,32 +131,85 @@ def encrypt(
     key, salt = generate_key(password_bytes)
     f = Fernet(key)
 
-    # Read the input file.
-    with open(file, "r") as input_file:
-        token = f.encrypt(input_file.read().encode())
-
-    # Determine the output filepath.
-    if not output:
-        # Use the same file name.
-        output = ENCRYPTION_DIR / f"{file.stem}.crypt"
+    # Read the input data
+    if file:
+        # Read from file
+        with open(file, "r") as input_file:
+            data = input_file.read()
+        input_name = file.stem
     else:
+        # Read from stdin
+        if sys.stdin.isatty():
+            click.echo("Reading from stdin (press Ctrl+D when done):")
+        data = sys.stdin.read()
+        input_name = "stdin"
+
+    token = f.encrypt(data.encode())
+
+    # Handle output
+    if print_only:
+        # Output to stdout (binary data)
+        sys.stdout.buffer.write(salt + token)
+        return
+
+    # If output is specified, save directly to that file
+    if output:
         if isinstance(output, str):
             output = (
                 Path(output).expanduser() if output.startswith("~")
                 else Path(output)
             )
+    else:
+        # No output specified
+        # If stdin is not a TTY (i.e., we're in a pipeline), default to stdout
+        if not file and not sys.stdin.isatty():
+            # We're reading from a pipe, output to stdout to maintain pipeline
+            sys.stdout.buffer.write(salt + token)
+            return
+        elif sys.stdout.isatty():
+            # We're in an interactive terminal, prompt user
+            if click.confirm("Would you like to save the encrypted data to a file?", default=True):
+                # Use the input name or "stdin" for the filename
+                suggested_path = ENCRYPTION_DIR / f"{input_name}.crypt"
+                path_prompt = (
+                    "Where? (Enter an absolute path, or press enter to use\n"
+                    f"the Cryptex data directory: {suggested_path})"
+                )
+                output_str = click.prompt(
+                    path_prompt, default=str(suggested_path), show_default=False
+                )
+                output = Path(output_str).expanduser()
+            else:
+                # User chose not to save - output to stdout
+                sys.stdout.buffer.write(salt + token)
+                return
+        else:
+            # stdout is not a TTY (output is being redirected), output to stdout
+            sys.stdout.buffer.write(salt + token)
+            return
 
-    # Write both the salt and encrypted data to the output file.
-    with open(output, "wb") as of:
-        of.write(salt)     # The first 16 bytes are the salt.
-        of.write(token)    # The rest is the encrypted data.
+    # Save to file
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if output.exists() and not click.confirm(
+            f"File `{output}` already exists. Do you want to overwrite it?"
+        ):
+            click.echo("Operation cancelled.")
+            return
 
-    click.echo(f"Encrypted {file} successfully.")
-    click.echo(f"Saved output to {output.resolve()}")
+        with open(output, "wb") as of:
+            of.write(salt + token)
+
+        source_desc = str(file) if file else "stdin"
+        click.echo(f"Encrypted {source_desc} successfully.")
+        click.echo(f"Saved output to {output.resolve()}")
+    except Exception as e:
+        click.echo(f"Error saving file: {e}", err=True)
+        return
 
 
 @cli.command()
-@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path), required=False)
 @click.option("--password", "-p", help="Decryption password")
 @click.option(
     "--output",
@@ -162,8 +225,8 @@ def encrypt(
     help="Print decrypted content to console without prompting to save",
 )
 def decrypt(
-    file: str | PathLike,
-    password: str,
+    file: str | PathLike | None = None,
+    password: str = None,
     output: str | PathLike | None = None,
     print_only: bool = False
 ) -> None:
@@ -172,9 +235,9 @@ def decrypt(
 
     Parameters
     ----------
-    file : str | PathLike
+    file : str | PathLike, optional
         A string or path-like object representing the location of the
-        file to be encrypted. If left unspecified, 
+        file to be decrypted. If not provided, reads from stdin.
     password : str
         The string of UTF-8-encoded characters used to decrypt the file.
     output : str | PathLike, optional
@@ -198,9 +261,21 @@ def decrypt(
     password_bytes: bytes = password.encode()
 
     try:
-        with open(file, "rb") as input_file:
-            salt = input_file.read(16)
-            encrypted_data = input_file.read()
+        # Read the input data
+        if file:
+            # Read from file
+            with open(file, "rb") as input_file:
+                salt = input_file.read(16)
+                encrypted_data = input_file.read()
+            input_name = file.stem
+        else:
+            # Read from stdin (binary mode)
+            if sys.stdin.isatty():
+                click.echo("Reading encrypted data from stdin...")
+            encrypted_bytes = sys.stdin.buffer.read()
+            salt = encrypted_bytes[:16]
+            encrypted_data = encrypted_bytes[16:]
+            input_name = "stdin"
 
         key, _ = generate_key(password_bytes, salt)
         f = Fernet(key)
@@ -217,7 +292,7 @@ def decrypt(
 
         if click.confirm("Would you like to save this output to disk?", default=True):
             if not output:
-                suggested_path = DECRYPTION_DIR / f"{file.stem}_decrypted.txt"
+                suggested_path = DECRYPTION_DIR / f"{input_name}_decrypted.txt"
                 path_prompt = (
                     "Where? (Enter an absolute path, or press enter to use\n"
                     f"the Cryptex data directory: {suggested_path})"
