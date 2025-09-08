@@ -22,7 +22,7 @@ from .main import (
 #
 __author__ = "Caleb Rice"
 __email__ = "hyletic@proton.me"
-__version__ = "0.1.0dev2"
+__version__ = "0.1.0dev4"
 
 
 # ─── package-level exports ──────────────────────────────────────────────────────── ✦ ─

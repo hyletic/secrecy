@@ -18,6 +18,13 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from platformdirs import user_data_path
 
+# Import version from package
+try:
+    from . import __version__
+except ImportError:
+    # Fallback for when running as standalone script
+    __version__ = "0.1.0dev2"
+
 
 # ─── typing ─────────────────────────────────────────────────────────────────────── ✦ ─
 #
@@ -70,6 +77,7 @@ def generate_key(password: bytes, salt: bytes | None = None) -> tuple[bytes, byt
 # ─── command-line interface ─────────────────────────────────────────────────────── ✦ ─
 #
 @click.group()
+@click.version_option(version=__version__, prog_name="Secrecy")
 def cli():
     """A symmetric encryption utility."""
     pass
