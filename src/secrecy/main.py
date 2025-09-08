@@ -71,12 +71,16 @@ def generate_key(password: bytes, salt: bytes | None = None) -> tuple[bytes, byt
 #
 @click.group()
 def cli():
-    """Secrecy - A command-line utility for encrypting and decrypting files."""
+    """A symmetric encryption utility."""
     pass
 
 
 @cli.command()
-@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path), required=False)
+@click.argument(
+    "file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=False
+)
 @click.option("--password", "-p", help="Encryption password")
 @click.option(
     "--output",
@@ -160,7 +164,10 @@ def encrypt(
             sys.stdout.buffer.write(salt + token)
             return
         elif sys.stdout.isatty():
-            if click.confirm("Would you like to save the encrypted data to a file?", default=True):
+            if click.confirm(
+                "Would you like to save the encrypted data to a file?",
+                default=True
+            ):
                 suggested_path = ENCRYPTION_DIR / f"{input_name}.crypt"
                 path_prompt = (
                     "Where? (Enter an absolute path, or press enter to use\n"
@@ -197,7 +204,11 @@ def encrypt(
 
 
 @cli.command()
-@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path), required=False)
+@click.argument(
+    "file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=False
+)
 @click.option("--password", "-p", help="Decryption password")
 @click.option(
     "--output",
