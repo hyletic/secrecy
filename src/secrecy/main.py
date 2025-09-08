@@ -77,7 +77,11 @@ def generate_key(password: bytes, salt: bytes | None = None) -> tuple[bytes, byt
 # ─── command-line interface ─────────────────────────────────────────────────────── ✦ ─
 #
 @click.group()
-@click.version_option(version=__version__, prog_name="Secrecy")
+@click.version_option(
+    __version__,
+    "--version", "-V",
+    prog_name="Secrecy",
+)
 def cli():
     """A symmetric encryption utility."""
     pass

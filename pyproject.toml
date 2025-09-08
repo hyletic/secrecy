@@ -1,6 +1,6 @@
 [project]
 name = "secrecy"
-version = "0.1.0dev4"
+version = "0.1.0dev5"
 description = "A symmetric encryption utility."
 readme = "README.md"
 requires-python = ">=3.10"
