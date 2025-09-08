@@ -57,14 +57,12 @@ def generate_key(password: bytes, salt: bytes | None = None) -> tuple[bytes, byt
     A tuple that contains the newly generated key and salt, in that order.
 
     """
-    # Generate a new salt if none is provided
     if salt is None:
         salt = os.urandom(16)
 
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(), length=32, salt=salt, iterations=1_200_000
     )
-
     key = base64.urlsafe_b64encode(kdf.derive(password))
     return key, salt
 
@@ -131,14 +129,14 @@ def encrypt(
     key, salt = generate_key(password_bytes)
     f = Fernet(key)
 
-    # Read the input data
+    # Read the input data.
     if file:
         # Read from file
         with open(file, "r") as input_file:
             data = input_file.read()
         input_name = file.stem
     else:
-        # Read from stdin
+        # Read from `stdin`.
         if sys.stdin.isatty():
             click.echo("Reading from stdin (press Ctrl+D when done):")
         data = sys.stdin.read()
@@ -146,13 +144,11 @@ def encrypt(
 
     token = f.encrypt(data.encode())
 
-    # Handle output
     if print_only:
         # Output to stdout (binary data)
         sys.stdout.buffer.write(salt + token)
         return
 
-    # If output is specified, save directly to that file
     if output:
         if isinstance(output, str):
             output = (
@@ -160,16 +156,11 @@ def encrypt(
                 else Path(output)
             )
     else:
-        # No output specified
-        # If stdin is not a TTY (i.e., we're in a pipeline), default to stdout
         if not file and not sys.stdin.isatty():
-            # We're reading from a pipe, output to stdout to maintain pipeline
             sys.stdout.buffer.write(salt + token)
             return
         elif sys.stdout.isatty():
-            # We're in an interactive terminal, prompt user
             if click.confirm("Would you like to save the encrypted data to a file?", default=True):
-                # Use the input name or "stdin" for the filename
                 suggested_path = ENCRYPTION_DIR / f"{input_name}.crypt"
                 path_prompt = (
                     "Where? (Enter an absolute path, or press enter to use\n"
@@ -180,15 +171,12 @@ def encrypt(
                 )
                 output = Path(output_str).expanduser()
             else:
-                # User chose not to save - output to stdout
                 sys.stdout.buffer.write(salt + token)
                 return
         else:
-            # stdout is not a TTY (output is being redirected), output to stdout
             sys.stdout.buffer.write(salt + token)
             return
 
-    # Save to file
     try:
         output.parent.mkdir(parents=True, exist_ok=True)
         if output.exists() and not click.confirm(
@@ -261,15 +249,12 @@ def decrypt(
     password_bytes: bytes = password.encode()
 
     try:
-        # Read the input data
         if file:
-            # Read from file
             with open(file, "rb") as input_file:
                 salt = input_file.read(16)
                 encrypted_data = input_file.read()
             input_name = file.stem
         else:
-            # Read from stdin (binary mode)
             if sys.stdin.isatty():
                 click.echo("Reading encrypted data from stdin...")
             encrypted_bytes = sys.stdin.buffer.read()
