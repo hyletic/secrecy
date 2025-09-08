@@ -1,6 +1,6 @@
 # `secrecy`
 
-A simple CLI utility for file en-/decryption.
+A symmetric encryption utility.
 
 ## Overview
 
@@ -11,7 +11,7 @@ you can run the following commands:
 
 ```bash
 python -m venv venv       # Create a virtual environment.
-source venv/bin/activate  # Activate the virtual envrionment.
+source venv/bin/activate  # Activate the virtual environment.
 pip install --upgrade pip # Make sure you have the latest version of `pip`.
 pip install secrecy       # Download and install the `secrecy` package.
 ```

@@ -1,7 +1,7 @@
 [project]
 name = "secrecy"
-version = "0.1.0dev1"
-description = "A CLI utility for en-/decrypting files."
+version = "0.1.0dev2"
+description = "A symmetric encryption utility."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

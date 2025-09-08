@@ -2,7 +2,7 @@
 Secrecy
 =======
 
-A simple CLI utility for file en-/decryption.
+A symmetric encryption utility.
 
 """
 
@@ -22,7 +22,7 @@ from .main import (
 #
 __author__ = "Caleb Rice"
 __email__ = "hyletic@proton.me"
-__version__ = "0.1.0dev1"
+__version__ = "0.1.0dev2"
 
 
 # ─── package-level exports ──────────────────────────────────────────────────────── ✦ ─
