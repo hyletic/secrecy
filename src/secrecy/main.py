@@ -22,7 +22,7 @@ from platformdirs import user_data_path
 try:
     from . import __version__
 except ImportError:
-    __version__ = "0.1.0dev6"
+    __version__ = "0.1.0dev7"
 
 
 # ─── typing ─────────────────────────────────────────────────────────────────────── ✦ ─
@@ -328,8 +328,8 @@ def encrypt(
                 ):
                     suggested_path = ENCRYPTION_DIR / f"{input_name}.crypt"
                     path_prompt = (
-                        "Where? (Enter an absolute path, or press enter to use\n"
-                        f"the Cryptex data directory: {suggested_path})"
+                        "Where? (Enter an absolute path, or press enter to use "
+                        f"the Secrecy data directory: {suggested_path})"
                     )
                     output_str = click.prompt(
                         path_prompt, default=str(suggested_path), show_default=False
@@ -571,8 +571,8 @@ def decrypt(
             if not output:
                 suggested_path = DECRYPTION_DIR / f"{input_name}_decrypted.txt"
                 path_prompt = (
-                    "Where? (Enter an absolute path, or press enter to use\n"
-                    f"the Cryptex data directory: {suggested_path})"
+                    "Where? (Enter an absolute path, or press enter to use "
+                    f"the Secrecy data directory: {suggested_path})"
                 )
                 output_str = click.prompt(
                     path_prompt, default=str(suggested_path), show_default=False
