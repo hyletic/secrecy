@@ -13,7 +13,7 @@ from .main import (
     generate_key,
     cli,
     encrypt,
-    decrypt
+    decrypt,
 )
 
 
@@ -22,7 +22,7 @@ from .main import (
 #
 __author__ = "Caleb Rice"
 __email__ = "hyletic@proton.me"
-__version__ = "0.1.0dev5"
+__version__ = "0.1.0dev6"
 
 
 # ─── package-level exports ──────────────────────────────────────────────────────── ✦ ─
